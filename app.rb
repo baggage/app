@@ -6,6 +6,7 @@ require 'json'
 require 'sidekiq'
 require 'net/smtp'
 require_relative 'mailer'
+require 'newrelic_rpm'
 
 module Baggage
   DEFAULT_EXPIRES = 7
@@ -15,6 +16,7 @@ module Baggage
   TOKEN_BYTES = 32
   ID_LENGTH = ID_BYTES * 2
   TOKEN_LENGTH = TOKEN_BYTES * 2
+  MAIL_FROM = 'baggage.io <no-reply@baggage.io>'
 end
 
 module Baggage
@@ -74,24 +76,38 @@ module Baggage
       @doc[:admin_token] = generate_token
     end
 
-    def send_tokens(message)
-      from = 'Baggage.io <no-reply@baggage.io>'
-      subject = 'New Baggage.io subscription'
+    def send_tokens(subject, message)
+      from = MAIL_FROM
       body = <<BODY_END
+Hi,
+
 #{message}
 
 id:              #{@id}
 email token:     #{@doc[:email_token]}
 admin token:     #{@doc[:admin_token]}
 
-rotate tokens:   http://api.baggage.io/rotate/#{@id}?token=#{@doc[:admin_token]}
-unsubscribe:     http://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}
+Use to the email token to send emails and use the admin token to rotate the tokens or unsubscribe. 
 
-Your subscription will expire after #{@doc[:expires]} days of inactivity.
+Please keep the admin token safe.
 
-send a message:
+
+Sending a message:
 
 http://api.baggage.io/send/#{@id}?token=#{@doc[:email_token]}&subject=hello&body=world
+
+
+To change your tokens:
+
+http://api.baggage.io/rotate/#{@id}?token=#{@doc[:admin_token]}
+
+
+To unsubscribe:
+
+http://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}
+
+
+Your subscription will expire after #{@doc[:expires]} days of inactivity.
 
 Regards,
 baggage.io
@@ -101,12 +117,12 @@ BODY_END
     end
 
     def send_unsubscribed()
-      from = 'Baggage.io <no-reply@baggage.io>'
-      subject = "Baggage.io #{@id} unsubscribed"
+      from = MAIL_FROM
+      subject = "baggage.io #{@id} unsubscribed"
       body = <<BODY_END
 Hi,
 
-ID #{@id} has been unsubscribed. Thank you.
+#{@id} has been unsubscribed. Thank you.
 
 Regards,
 baggage.io
@@ -120,7 +136,7 @@ BODY_END
       @id = generate_id
       generate_tokens
       write
-      send_tokens('Your new subscription:')
+      send_tokens('New baggage.io subscription', 'Your new subscription:')
     end
 
     def rotate(args = {})
@@ -129,7 +145,7 @@ BODY_END
       if @doc[:admin_token] == args[:token]
         generate_tokens
         write
-        send_tokens('Tokens have been rotated. The new values are:')
+        send_tokens('Your new baggage.io tokens', 'Your tokens have been rotated. The new values are:')
       else
         raise 'invalid token'
       end
@@ -215,7 +231,7 @@ module Baggage
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
       param :subject,   String, required: true
       param :body,      String, required: true
-      param :from,      String, default: 'no-reply@baggage.io'
+      param :from,      String, default: MAIL_FROM
 
       begin
         s = Subscriber.new
@@ -225,6 +241,25 @@ module Baggage
         halt 400, { :message => e.message }.to_json
       end
     end
+
+    post '/send/:id' do
+      param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
+      param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
+      param :subject,   String, required: true
+      param :from,      String, default: MAIL_FROM
+
+      request.body.rewind
+      body = request.body.read
+
+      begin
+        s = Subscriber.new
+        s.send(:id => params[:id], :token => params[:token], :subject => params[:subject], :body => body, :from => params[:from])
+        { :message => 'sent' }.to_json
+      rescue Exception => e
+        halt 400, { :message => e.message }.to_json
+      end
+    end
+
 
     not_found do
       halt 404, '{ "message": "not found" }'

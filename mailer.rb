@@ -1,4 +1,5 @@
 require 'sidekiq'
+require 'mail'
 
 Sidekiq.configure_client do |config|
   #config.redis = { :namespace => 'BaggageMailer', :size => 1 }
@@ -17,9 +18,15 @@ Subject: #{args['subject']}
 #{args['body']}
 MESSAGE_END
 
-    File.open('mails', 'a') { |f| f.write(message) }
-    #Net::SMTP.start('localhost') do |smtp|
-    #  smtp.send_message message
-    #end
+    #File.open('mails', 'a') { |f| f.write(message) }
+    mail = Mail.deliver do
+      to args['to']
+      from args['from']
+      subject args['subject']
+
+      text_part do 
+        body args['body']
+      end
+    end
   end
 end
