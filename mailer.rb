@@ -18,8 +18,7 @@ Subject: #{args['subject']}
 #{args['body']}
 MESSAGE_END
 
-    #File.open('mails', 'a') { |f| f.write(message) }
-    mail = Mail.deliver do
+    mail = Mail.new do
       to args['to']
       from args['from']
       subject args['subject']
@@ -27,9 +26,17 @@ MESSAGE_END
       header['X-Sender'] = args['ip']
       header['X-X-Sender'] = args['ip']
       header['List-Unsubscribe'] = args['unsubscribe']
+      header['X-Complaints-To'] = 'abuse@baggage.io'
+      header['X-Mailer'] = 'api.baggage.io'
       text_part do 
         body args['body']
       end
+    end
+
+    if ENV.has_key?('SIDEKIQ_ENV') and ENV['SIDEKIQ_ENV'].downcase == 'development'
+      File.open('mails.txt', 'a') { |f| f.write(mail.to_s) }
+    else
+      mail.delivery!
     end
   end
 end

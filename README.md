@@ -12,15 +12,21 @@ For a quick overview including emails see http://baggage.io
 
 # api
 
-## endpoints
+### endpoints
 
 * http://api.baggage.io
 * https://api.baggage.io
 
-## errors
+### output
 
+All output is currently JSON.
+
+### status codes
+
+* Returns 200 on success
 * Returns 400 on error
-* Returns 404 for unknown calls
+* Returns 404 for unknown requests
+
 
 ## subscribe
 
@@ -41,13 +47,14 @@ Output on success:
 
     { "message": "subscription sent" }
 
+
 ## send
 
 __GET /send/{id}__
 
 Used to send an email to the subscribed email address.
 
-    curl -is 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}&body={body}'
+    curl -is 'https://api.baggage.io/send/{id}?token={email_token}&subject={subject}&from={from}&body={body}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
@@ -61,7 +68,7 @@ __POST /send{id}__
 
 Here the body comes from the body of the request so the body parameter isn't required.
 
-    curl -is -XPOST --data-binary @body.txt 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}'
+    curl -is -XPOST --data-binary @body.txt 'https://api.baggage.io/send/{id}?token={email_token}&subject={subject}&from={from}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
@@ -73,6 +80,32 @@ Here the body comes from the body of the request so the body parameter isn't req
 Output on success:
 
     { "message": "sent" }
+
+
+## stats
+
+__GET /stats/{id}__
+
+Retrieve subscription statistics.
+
+    curl -is 'https://api.baggage.io/stats/{id}?token={token}&expires={expires}'
+
+| Parameter | Description | Type | Validation | Required | Default |
+|-----------|-------------|------|------------|:--------:|---------|
+| id | Unique subscription ID | String | Hex 32 chars | Yes | NA |
+| token | Admin token | String | Hex 64 chars | Yes | NA |
+
+Output on success:
+
+    {"message":"stats","stats":{"created":"2014-04-07 23:48:18 +0100","updated":"2014-04-07 23:49:36 +0100","sent_count":1,"subscriber_ip":"127.0.0.1","last_admin_ip":"127.0.0.1","last_sender_ip":"127.0.0.1","ttl":604797}}
+
+* __created__ - when the subscription was created
+* __updated__ - when the subscription was last updated or used
+* __sent\_count__ - number of messages sent
+* __subscriber\_ip__ - client IP address when subscription was created
+* __last\_admin\_ip__ - client IP address of the last admin call
+* __last\_sender\_ip__ - client IP address of the last send call
+* __ttl__ - number of seconds before subscription expires of inactivity (time to live)
 
 
 ## rotate

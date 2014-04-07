@@ -39,8 +39,12 @@ module Baggage
       end
     end
 
+    def get_ttl()
+      @data_store.ttl(@id)
+    end
+
     def write()
-      @doc['updated'] = Time.now
+      @doc[:updated] = Time.now
       if not @data_store.set(@id, @doc.to_json)
         raise 'could not write'
       end
@@ -59,7 +63,7 @@ module Baggage
   class Subscriber < RedisDataStore
 
     def initialize()
-      @doc = { :sent_count => 0 }
+      @doc = {}
       @id = nil
       super
     end
@@ -78,7 +82,7 @@ module Baggage
     end
 
     def unsubscribe_url
-      "https://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}"
+      "https://api.baggage.io/unsubscribe/#{@id}?token="
     end
 
     def send_tokens(subject, message)
@@ -92,14 +96,19 @@ id:              #{@id}
 email token:     #{@doc[:email_token]}
 admin token:     #{@doc[:admin_token]}
 
-Use to the email token to send emails and use the admin token to rotate the tokens or unsubscribe. 
+Use to the email token to send emails and use the admin token to get stats, rotate the tokens, or unsubscribe. 
 
 Please keep the admin token safe.
 
 
-Sending a message:
+Send a message:
 
 https://api.baggage.io/send/#{@id}?token=#{@doc[:email_token]}&subject=hello&body=world
+
+
+Retrieve subscription statistics:
+
+https://api.baggage.io/stats/#{@id}?token=#{@doc[:admin_token]}
 
 
 To change your tokens:
@@ -122,7 +131,7 @@ To report abuse, please email abuse@baggage.io
 For all other issues, email help@baggage.io
 BODY_END
 
-        BaggageMailer.perform_async('ip' => @doc[:ip], 
+        BaggageMailer.perform_async('ip' => @doc[:last_admin_ip], 
                                     'to' => @doc[:email], 
                                     'from' => from, 
                                     'subject' => subject, 
@@ -146,7 +155,7 @@ To report abuse, please email abuse@baggage.io
 For all other issues, email help@baggage.io
 BODY_END
 
-        BaggageMailer.perform_async('ip' => @doc[:ip], 
+        BaggageMailer.perform_async('ip' => @doc[:last_admin_ip], 
                                     'to' => @doc[:email], 
                                     'from' => from, 
                                     'subject' => subject, 
@@ -157,10 +166,27 @@ BODY_END
     def subscribe(args = {})
       @doc = args
       @id = generate_id
-      @doc['created'] = Time.now
+      @doc[:sent_count] = 0
+      @doc[:created] = Time.now
+      @doc[:subscriber_ip] = @doc[:last_admin_ip]
       generate_tokens
       write
       send_tokens('New baggage.io subscription', 'Your new subscription:')
+    end
+
+    def stats(args = {})
+      @id = args[:id]
+      read
+      if @doc[:admin_token] == args[:token]
+        stats = {}
+        %w[ created updated sent_count subscriber_ip last_admin_ip last_sender_ip ].each do |key|
+          stats[key.to_sym] = @doc[key.to_sym]
+        end
+        stats[:ttl] = get_ttl
+        return stats
+      else
+        raise 'invalid token'
+      end
     end
 
     def rotate(args = {})
@@ -168,6 +194,11 @@ BODY_END
       read
       if @doc[:admin_token] == args[:token]
         generate_tokens
+
+        if args[:expires]
+          @doc[:expires] = args[:expires]
+        end
+
         write
         send_tokens('Your new baggage.io tokens', 'Your tokens have been rotated. The new values are:')
       else
@@ -191,8 +222,9 @@ BODY_END
       read
       if @doc[:email_token] == args[:token]
         @doc[:sent_count] += 1
+        @doc[:last_sender_ip] = args[:last_sender_ip]
         write
-        BaggageMailer.perform_async('ip' => @doc[:ip], 
+        BaggageMailer.perform_async('ip' => @doc[:last_sender_ip], 
                                     'to' => @doc[:email], 
                                     'from' => args[:from], 
                                     'subject' => args[:subject], 
@@ -223,9 +255,26 @@ module Baggage
         s = Subscriber.new
         s.subscribe(:email => params[:email], 
                     :expires => params[:expires],
-                    :admin_ip => request.ip)
+                    :last_admin_ip => request.ip)
 
         { :message => 'subscription sent' }.to_json
+      rescue Exception => e
+        halt 400, { :message => e.message }.to_json
+      end
+    end
+
+    # GET /stats/xxx?token=yyy
+    get '/stats/:id' do
+      param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
+      param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
+
+      begin
+        s = Subscriber.new
+        stats = s.stats(:id => params[:id], 
+                 :token => params[:token], 
+                 :last_admin_ip => request.ip)
+
+        { :message => 'stats', :stats => stats }.to_json
       rescue Exception => e
         halt 400, { :message => e.message }.to_json
       end
@@ -236,14 +285,14 @@ module Baggage
     get '/rotate/:id' do
       param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
-      param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: Baggage::DEFAULT_EXPIRES
+      param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: nil
 
       begin
         s = Subscriber.new
         s.rotate(:id => params[:id], 
                  :token => params[:token], 
                  :expires => params[:expires],
-                 :admin_ip => request.ip)
+                 :last_admin_ip => request.ip)
 
         { :message => 'rotated' }.to_json
       rescue Exception => e
@@ -260,7 +309,7 @@ module Baggage
         s = Subscriber.new
         s.unsubscribe(:id => params[:id], 
                       :token => params[:token],
-                      :admin_ip => request.ip)
+                      :last_admin_ip => request.ip)
 
         { :message => 'unsubscribed' }.to_json
       rescue Exception => e
@@ -283,7 +332,7 @@ module Baggage
                :subject => params[:subject], 
                :body => params[:body], 
                :from => params[:from],
-               :sender_ip => request.ip)
+               :last_sender_ip => request.ip)
 
         { :message => 'sent' }.to_json
       rescue Exception => e
@@ -307,7 +356,7 @@ module Baggage
                :subject => params[:subject], 
                :body => body, 
                :from => params[:from],
-               :sender_ip => request.ip)
+               :last_sender_ip => request.ip)
 
         { :message => 'sent' }.to_json
       rescue Exception => e
