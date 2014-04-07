@@ -17,6 +17,11 @@ For a quick overview including emails see http://baggage.io
 * http://api.baggage.io
 * https://api.baggage.io
 
+## errors
+
+* Returns 400 on error
+* Returns 404 for unknown calls
+
 ## subscribe
 
 __GET /subscribe/{email\_address}__

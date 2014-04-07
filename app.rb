@@ -57,9 +57,12 @@ end
 module Baggage
   class Subscriber < RedisDataStore
 
+    attr_accessor :ip
+
     def initialize()
       @doc = {}
       @id = nil
+      @ip = nil
       super
     end
 
@@ -198,6 +201,7 @@ module Baggage
       param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: Baggage::DEFAULT_EXPIRES
       begin
         s = Subscriber.new
+        s.ip = request.ip
         s.subscribe(:email => params[:email], :expires => params[:expires])
         { :message => 'subscription sent' }.to_json
       rescue Exception => e
@@ -213,6 +217,7 @@ module Baggage
       param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: Baggage::DEFAULT_EXPIRES
       begin
         s = Subscriber.new
+        s.ip = request.ip
         s.rotate(:id => params[:id], :token => params[:token], :expires => params[:expires])
         { :message => 'rotated' }.to_json
       rescue Exception => e
@@ -226,6 +231,7 @@ module Baggage
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
       begin
         s = Subscriber.new
+        s.ip = request.ip
         s.unsubscribe(:id => params[:id], :token => params[:token])
         { :message => 'unsubscribed' }.to_json
       rescue Exception => e
@@ -243,6 +249,7 @@ module Baggage
 
       begin
         s = Subscriber.new
+        s.ip = request.ip
         s.send(:id => params[:id], :token => params[:token], :subject => params[:subject], :body => params[:body], :from => params[:from])
         { :message => 'sent' }.to_json
       rescue Exception => e
@@ -261,13 +268,13 @@ module Baggage
 
       begin
         s = Subscriber.new
+        s.ip = request.ip
         s.send(:id => params[:id], :token => params[:token], :subject => params[:subject], :body => body, :from => params[:from])
         { :message => 'sent' }.to_json
       rescue Exception => e
         halt 400, { :message => e.message }.to_json
       end
     end
-
 
     not_found do
       halt 404, '{ "message": "not found" }'
