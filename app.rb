@@ -25,6 +25,10 @@ module Baggage
       @data_store = Redis.new
     end
 
+    def exists?(id)
+      @data_store.exists(id) == 1
+    end
+
     def read()
       @doc = JSON.parse(@data_store.get(@id), :symbolize_names => true)
       if not @doc
@@ -69,7 +73,14 @@ module Baggage
     end
 
     def generate_id()
-      SecureRandom.hex(Baggage::ID_BYTES)
+      10.times do
+        id = SecureRandom.hex(Baggage::ID_BYTES)
+        if not exists?(id)
+          return id
+        end
+      end
+
+      raise 'could not generate unique id'
     end
 
     def generate_token()
