@@ -24,6 +24,9 @@ MESSAGE_END
       from args['from']
       subject args['subject']
 
+      header['X-Sender'] = args['ip']
+      header['X-X-Sender'] = args['ip']
+      header['List-Unsubscribe'] = args['unsubscribe']
       text_part do 
         body args['body']
       end

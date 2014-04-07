@@ -79,6 +79,10 @@ module Baggage
       @doc[:admin_token] = generate_token
     end
 
+    def unsubscribe_url
+      "https://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}"
+    end
+
     def send_tokens(subject, message)
       from = MAIL_FROM
       body = <<BODY_END
@@ -120,7 +124,12 @@ To report abuse, please email abuse@baggage.io
 For all other issues, email help@baggage.io
 BODY_END
 
-        BaggageMailer.perform_async('to' => @doc[:email], 'from' => from, 'subject' => subject, 'body' => body)
+        BaggageMailer.perform_async('ip' => @ip, 
+                                    'to' => @doc[:email], 
+                                    'from' => from, 
+                                    'subject' => subject, 
+                                    'body' => body,
+                                    'unsubscribe' => unsubscribe_url)
     end
 
     def send_unsubscribed()
@@ -139,7 +148,12 @@ To report abuse, please email abuse@baggage.io
 For all other issues, email help@baggage.io
 BODY_END
 
-        BaggageMailer.perform_async('to' => @doc[:email], 'from' => from, 'subject' => subject, 'body' => body)
+        BaggageMailer.perform_async('ip' => @ip, 
+                                    'to' => @doc[:email], 
+                                    'from' => from, 
+                                    'subject' => subject, 
+                                    'body' => body,
+                                    'unsubscribe' => unsubscribe_url)
     end
 
     def subscribe(args = {})
@@ -178,7 +192,12 @@ BODY_END
       read
       if @doc[:email_token] == args[:token]
         set_expiry
-        BaggageMailer.perform_async('to' => @doc[:email], 'from' => args[:from], 'subject' => args[:subject], 'body' => args[:body])
+        BaggageMailer.perform_async('ip' => @ip, 
+                                    'to' => @doc[:email], 
+                                    'from' => args[:from], 
+                                    'subject' => args[:subject], 
+                                    'body' => args[:body],
+                                    'unsubscribe' => unsubscribe_url)
       else
         raise 'invalid token'
       end
