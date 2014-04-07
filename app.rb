@@ -94,17 +94,17 @@ Please keep the admin token safe.
 
 Sending a message:
 
-http://api.baggage.io/send/#{@id}?token=#{@doc[:email_token]}&subject=hello&body=world
+https://api.baggage.io/send/#{@id}?token=#{@doc[:email_token]}&subject=hello&body=world
 
 
 To change your tokens:
 
-http://api.baggage.io/rotate/#{@id}?token=#{@doc[:admin_token]}
+https://api.baggage.io/rotate/#{@id}?token=#{@doc[:admin_token]}
 
 
 To unsubscribe:
 
-http://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}
+https://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}
 
 
 Your subscription will expire after #{@doc[:expires]} days of inactivity.
