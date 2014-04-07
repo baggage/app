@@ -37,7 +37,7 @@ __GET /send/{id}__
 
 Used to send an email to the subscribed email address.
 
-  curl -is 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}&body={body}'
+    curl -is 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}&body={body}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
