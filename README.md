@@ -12,6 +12,11 @@ For a quick overview including emails see http://baggage.io
 
 # api
 
+## endpoints
+
+* http://api.baggage.io
+* https://api.baggage.io
+
 ## subscribe
 
 __GET /subscribe/{email\_address}__
