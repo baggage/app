@@ -51,7 +51,7 @@ __POST /send{id}__
 
 Here the body comes from the body of the request so the body parameter isn't required.
 
-  curl -is -XPOST --data-binary @body.txt 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}'
+    curl -is -XPOST --data-binary @body.txt 'https://api.baggage.io/send/{id}?token={email\_token}&subject={subject}&from={from}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
