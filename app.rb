@@ -111,6 +111,10 @@ Your subscription will expire after #{@doc[:expires]} days of inactivity.
 
 Regards,
 baggage.io
+
+--
+To report abuse, please email abuse@baggage.io
+For all other issues, email help@baggage.io
 BODY_END
 
         BaggageMailer.perform_async('to' => @doc[:email], 'from' => from, 'subject' => subject, 'body' => body)
@@ -126,6 +130,10 @@ Hi,
 
 Regards,
 baggage.io
+
+--
+To report abuse, please email abuse@baggage.io
+For all other issues, email help@baggage.io
 BODY_END
 
         BaggageMailer.perform_async('to' => @doc[:email], 'from' => from, 'subject' => subject, 'body' => body)
