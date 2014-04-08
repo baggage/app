@@ -88,7 +88,7 @@ __GET /stats/{id}__
 
 Retrieve subscription statistics. This does not send an email, the stats are return as JSON.
 
-    curl -is 'https://api.baggage.io/stats/{id}?token={token}&expires={expires}'
+    curl -is 'https://api.baggage.io/stats/{id}?token={token}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
