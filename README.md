@@ -151,7 +151,7 @@ __GET /ping__
 
 Simple connectivity test.
 
-    curl -is 'https://api.baggage.io/ping
+    curl -is https://api.baggage.io/ping
 
 Output on success:
 
