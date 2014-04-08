@@ -64,7 +64,7 @@ Used to send an email to the subscribed email address.
 | from | From address name | String | Not empty | No | baggage.io |
 | body | Body of the email to send | String | Not empty | Yes | NA |
 
-__POST /send{id}__
+__POST /send/{id}__
 
 Here the body comes from the body of the request so the body parameter isn't required.
 
