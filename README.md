@@ -103,8 +103,8 @@ Output on success:
 * __updated__ - when the subscription was last updated or used
 * __sent\_count__ - number of messages sent
 * __subscriber\_ip__ - client IP address when subscription was created
-* __last\_admin\_ip__ - client IP address of the last admin call
-* __last\_sender\_ip__ - client IP address of the last send call
+* __last\_admin\_ip__ - client IP address of the last admin request
+* __last\_sender\_ip__ - client IP address of the last send request
 * __ttl__ - number of seconds before subscription expires of inactivity (time to live)
 
 
