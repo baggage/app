@@ -36,7 +36,7 @@ MESSAGE_END
     if ENV.has_key?('SIDEKIQ_ENV') and ENV['SIDEKIQ_ENV'].downcase == 'development'
       File.open('mails.txt', 'a') { |f| f.write(mail.to_s) }
     else
-      mail.delivery!
+      mail.deliver!
     end
   end
 end
