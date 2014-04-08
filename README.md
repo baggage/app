@@ -26,7 +26,7 @@ All output is currently JSON.
 * Returns 200 on success
 * Returns 400 on error
 * Returns 404 for unknown requests
-
+* Returns 500 when something really bad happens
 
 ## subscribe
 
@@ -143,6 +143,19 @@ Deletes the subscription for the given ID. If an email address has multiple subs
 Output on success:
 
     { "message": "unsubscribed" }
+
+
+## ping
+
+__GET /ping__
+
+Simple connectivity test.
+
+    curl -is 'https://api.baggage.io/ping
+
+Output on success:
+
+    { "message": "pong" }
 
 
 # contributing
