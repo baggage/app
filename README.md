@@ -8,7 +8,7 @@ The typical use case is sending notifications from a server that can't reach any
 
 # tutorial
 
-For a quick overview including emails see http://baggage.io
+For a quick overview with example emails see http://baggage.io
 
 # api
 
