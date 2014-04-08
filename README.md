@@ -147,7 +147,7 @@ Output on success:
 
 # contributing
 
-Please refer to each project's style guidelines and guidelines for submitting patches and additions. In general, we follow the "fork-and-pull" Git workflow.
+In general, we follow the "fork-and-pull" Git workflow.
 
  1. Fork the repo on GitHub
  2. Commit changes to a branch in your fork
