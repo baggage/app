@@ -375,6 +375,11 @@ module Baggage
       end
     end
 
+    # GET /ping
+    get '/ping' do
+      '{ "message": "pong" }'
+    end
+
     not_found do
       halt 404, '{ "message": "not found" }'
     end
