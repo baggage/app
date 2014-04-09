@@ -277,6 +277,9 @@ module Baggage
     helpers Sinatra::Param
     register Sinatra::RespondWith
 
+    respond_to :json, :xml, :text, :yaml
+    set :default_content, :json
+
     # GET /subscribe/user@domain
     # GET /subscribe/user@domain?expires=1
     get '/subscribe/:email' do
