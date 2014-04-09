@@ -106,8 +106,9 @@ Retrieve subscription statistics. This does not send an email, the stats are ret
 
 Output on success:
 
-    {"message":"stats","stats":{"created":"2014-04-07 23:48:18 +0100","updated":"2014-04-07 23:49:36 +0100","sent_count":1,"subscriber_ip":"127.0.0.1","last_admin_ip":"127.0.0.1","last_sender_ip":"127.0.0.1","ttl":604797}}
+    {"message":"stats","stats":{"email":"you@domain.com","created":"2014-04-07 23:48:18 +0100","updated":"2014-04-07 23:49:36 +0100","sent_count":1,"subscriber_ip":"127.0.0.1","last_admin_ip":"127.0.0.1","last_sender_ip":"127.0.0.1","ttl":604797}}
 
+* __email__ - subscribed email address
 * __created__ - when the subscription was created
 * __updated__ - when the subscription was last updated or used
 * __sent\_count__ - number of messages sent
