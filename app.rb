@@ -294,6 +294,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -301,6 +302,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -321,6 +323,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -328,6 +331,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -351,6 +355,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -358,6 +363,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -378,6 +384,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -385,6 +392,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -411,6 +419,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -418,6 +427,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -445,6 +455,7 @@ module Baggage
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
+          f.yaml { Baggage::Response.yaml(response) }
         end
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
@@ -452,6 +463,7 @@ module Baggage
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
+          f.yaml { halt 400, Baggage::Response.yaml(response) }
         end
       end
     end
@@ -464,6 +476,7 @@ module Baggage
         f.txt  { Baggage::Response.text(response) }
         f.json { Baggage::Response.json(response) }
         f.xml  { Baggage::Response.xml(response)  }
+        f.yaml { Baggage::Response.yaml(response) }
       end
     end
 
@@ -473,6 +486,7 @@ module Baggage
         f.txt  { halt 404, Baggage::Response.text(response) }
         f.json { halt 404, Baggage::Response.json(response) }
         f.xml  { halt 404, Baggage::Response.xml(response)  }
+        f.yaml { halt 404, Baggage::Response.yaml(response) }
       end
     end
 

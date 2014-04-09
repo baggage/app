@@ -19,7 +19,16 @@ For a quick overview with example emails see http://baggage.io
 
 ### output
 
-All output is currently JSON.
+Output defaults to application/json. You can set the required format using the HTTP Accept header. For example
+
+    curl -is -H 'Accept: application/xml' https://api.baggage.io/ping
+
+The following are accepted:
+
+* text/plain (actually just text/yaml)
+* text/yaml
+* application/json (default)
+* application/yaml
 
 ### status codes
 
@@ -45,7 +54,7 @@ When you subscribe, you will receive an email containing the tokens necessary fo
 
 Output on success:
 
-    { "message": "subscription sent" }
+    {"message":"subscription sent"}
 
 
 ## send
@@ -79,7 +88,7 @@ Here the body comes from the body of the request so the body parameter isn't req
 
 Output on success:
 
-    { "message": "sent" }
+    {"message":"sent"}
 
 
 ## stats
@@ -124,7 +133,7 @@ Used to change the tokens. The ID remains the same and both tokens get rotated. 
 
 Output on success:
 
-    { "message": "rotated" }
+    {"message":"rotated"}
 
 
 ## unsubscribe
@@ -142,7 +151,7 @@ Deletes the subscription for the given ID. If an email address has multiple subs
 
 Output on success:
 
-    { "message": "unsubscribed" }
+    {"message":"unsubscribed"}
 
 
 ## ping
@@ -155,7 +164,7 @@ Simple connectivity test.
 
 Output on success:
 
-    { "message": "pong" }
+    {"message":"pong"}
 
 
 # contributing
