@@ -19,7 +19,8 @@ module Baggage
   TOKEN_BYTES = 32
   ID_LENGTH = ID_BYTES * 2
   TOKEN_LENGTH = TOKEN_BYTES * 2
-  MAIL_FROM = 'baggage.io <no-reply@baggage.io>'
+  MAIL_FROM_NAME = 'baggage.io'
+  MAIL_FROM_ADDR = '<no-reply@baggage.io>'
 end
 
 module Baggage
@@ -121,7 +122,7 @@ module Baggage
     end
 
     def send_tokens(subject, message)
-      from = MAIL_FROM
+      from = "#{MAIL_FROM_NAME} #{MAIL_FROM_ADDR}"
       body = <<BODY_END
 Hi,
 
@@ -175,7 +176,7 @@ BODY_END
     end
 
     def send_unsubscribed()
-      from = MAIL_FROM
+      from = "#{MAIL_FROM_NAME} #{MAIL_FROM_ADDR}"
       subject = "baggage.io #{@id} unsubscribed"
       body = <<BODY_END
 Hi,
@@ -259,9 +260,9 @@ BODY_END
         @doc[:sent_count] += 1
         @doc[:last_sender_ip] = args[:last_sender_ip]
         write
-        BaggageMailer.perform_async('ip' => @doc[:last_sender_ip], 
-                                    'to' => @doc[:email], 
-                                    'from' => args[:from], 
+        BaggageMailer.perform_async('ip' => @doc[:last_sender_ip],
+                                    'to' => @doc[:email],
+                                    'from' => "#{args[:from]} #{MAIL_FROM_ADDR}",
                                     'subject' => args[:subject], 
                                     'body' => args[:body],
                                     'unsubscribe' => unsubscribe_url)
@@ -406,14 +407,14 @@ module Baggage
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
       param :subject,   String, required: true
       param :body,      String, required: true
-      param :from,      String, default: MAIL_FROM
+      param :from,      String, default: MAIL_FROM_NAME
 
       begin
         s = Subscriber.new
-        s.send(:id => params[:id], 
-               :token => params[:token], 
-               :subject => params[:subject], 
-               :body => params[:body], 
+        s.send(:id => params[:id],
+               :token => params[:token],
+               :subject => params[:subject],
+               :body => params[:body],
                :from => params[:from],
                :last_sender_ip => request.ip)
 
@@ -439,17 +440,17 @@ module Baggage
       param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
       param :subject,   String, required: true
-      param :from,      String, default: MAIL_FROM
+      param :from,      String, default: MAIL_FROM_NAME
 
       request.body.rewind
       body = request.body.read
 
       begin
         s = Subscriber.new
-        s.send(:id => params[:id], 
-               :token => params[:token], 
-               :subject => params[:subject], 
-               :body => body, 
+        s.send(:id => params[:id],
+               :token => params[:token],
+               :subject => params[:subject],
+               :body => body,
                :from => params[:from],
                :last_sender_ip => request.ip)
 
