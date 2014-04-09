@@ -1,12 +1,15 @@
 require 'rubygems'
 require 'sinatra/base'
 require 'sinatra/param'
+require 'sinatra/respond_with'
 require 'redis'
 require 'json'
 require 'sidekiq'
 require 'time'
 require_relative 'mailer'
 require 'newrelic_rpm'
+require 'gyoku'
+require 'yaml'
 
 module Baggage
   DEFAULT_EXPIRES = 7
@@ -17,6 +20,27 @@ module Baggage
   ID_LENGTH = ID_BYTES * 2
   TOKEN_LENGTH = TOKEN_BYTES * 2
   MAIL_FROM = 'baggage.io <no-reply@baggage.io>'
+end
+
+module Baggage
+  class Response
+    def self.text(resp = {})
+      self.yaml(resp)
+    end
+
+    def self.yaml(resp = {})
+      resp.to_yaml
+    end
+
+    def self.json(resp = {})
+      resp.to_json
+    end
+
+    def self.xml(resp = {})
+      Gyoku.xml(resp)
+    end
+
+  end
 end
 
 module Baggage
@@ -190,7 +214,7 @@ BODY_END
       read
       if @doc[:admin_token] == args[:token]
         stats = {}
-        %w[ created updated sent_count subscriber_ip last_admin_ip last_sender_ip ].each do |key|
+        %w[ email created updated sent_count subscriber_ip last_admin_ip last_sender_ip ].each do |key|
           stats[key.to_sym] = @doc[key.to_sym]
         end
         stats[:ttl] = get_ttl
@@ -251,10 +275,7 @@ end
 module Baggage
   class App < Sinatra::Base
     helpers Sinatra::Param
-
-    before do
-      content_type :json
-    end
+    register Sinatra::RespondWith
 
     # GET /subscribe/user@domain
     # GET /subscribe/user@domain?expires=1
@@ -268,9 +289,19 @@ module Baggage
                     :expires => params[:expires],
                     :last_admin_ip => request.ip)
 
-        { :message => 'subscription sent' }.to_json
+        response = { :message => 'subscription sent' }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
@@ -285,9 +316,19 @@ module Baggage
                  :token => params[:token], 
                  :last_admin_ip => request.ip)
 
-        { :message => 'stats', :stats => stats }.to_json
+        response = { :message => 'stats', :stats => stats }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
@@ -305,9 +346,19 @@ module Baggage
                  :expires => params[:expires],
                  :last_admin_ip => request.ip)
 
-        { :message => 'rotated' }.to_json
+        response = { :message => 'rotated' }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
@@ -322,9 +373,19 @@ module Baggage
                       :token => params[:token],
                       :last_admin_ip => request.ip)
 
-        { :message => 'unsubscribed' }.to_json
+        response = { :message => 'unsubscribed' }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
@@ -345,9 +406,19 @@ module Baggage
                :from => params[:from],
                :last_sender_ip => request.ip)
 
-        { :message => 'sent' }.to_json
+        response = { :message => 'sent' }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
@@ -369,21 +440,43 @@ module Baggage
                :from => params[:from],
                :last_sender_ip => request.ip)
 
-        { :message => 'sent' }.to_json
+        response = { :message => 'sent' }
+        respond_to do |f|
+          f.txt  { Baggage::Response.text(response) }
+          f.json { Baggage::Response.json(response) }
+          f.xml  { Baggage::Response.xml(response)  }
+        end
       rescue Exception => e
-        halt 400, { :message => e.message }.to_json
+        response = { :message => 'error', :error => e.message }
+        respond_to do |f|
+          f.txt  { halt 400, Baggage::Response.text(response) }
+          f.json { halt 400, Baggage::Response.json(response) }
+          f.xml  { halt 400, Baggage::Response.xml(response)  }
+        end
       end
     end
 
     # GET /ping
     get '/ping' do
-      '{ "message": "pong" }'
+      response = { :message => 'pong' }
+
+      respond_to do |f|
+        f.txt  { Baggage::Response.text(response) }
+        f.json { Baggage::Response.json(response) }
+        f.xml  { Baggage::Response.xml(response)  }
+      end
     end
 
     not_found do
-      halt 404, '{ "message": "not found" }'
+      response = { :message => 'error', :error => 'not found' }
+      respond_to do |f|
+        f.txt  { halt 404, Baggage::Response.text(response) }
+        f.json { halt 404, Baggage::Response.json(response) }
+        f.xml  { halt 404, Baggage::Response.xml(response)  }
+      end
     end
 
-    run! if app_file == $0
   end
 end
+
+Baggage::App.run! if __FILE__ == $0
