@@ -128,9 +128,9 @@ Hi,
 
 #{message}
 
-id:              #{@id}
-email token:     #{@doc[:email_token]}
-admin token:     #{@doc[:admin_token]}
+    id:              #{@id}
+    email token:     #{@doc[:email_token]}
+    admin token:     #{@doc[:admin_token]}
 
 Use to the email token to send emails and use the admin token to get stats, rotate the tokens, or unsubscribe. 
 
@@ -155,6 +155,28 @@ https://api.baggage.io/rotate/#{@id}?token=#{@doc[:admin_token]}
 To unsubscribe:
 
 https://api.baggage.io/unsubscribe/#{@id}?token=#{@doc[:admin_token]}
+
+
+Installing the baggage command line tool:
+
+curl -sL -o baggage http://tool.baggage.io && chmod +x baggage
+
+
+For normal or system users add the id and email token:
+
+touch ~/.baggage && chmod 0600 ~/.baggage && cat <<EOF > ~/.baggage
+BAGGAGE_ID=#{@id}
+BAGGAGE_EMAIL_TOKEN=#{@doc[:email_token]}
+EOF
+
+For admins you can also add the admin token to the .baggage file:
+
+BAGGAGE_ADMIN_TOKEN=#{@doc[:admin_token]}
+
+
+Use the tool:
+
+./baggage help
 
 
 Your subscription will expire after #{@doc[:expires]} days of inactivity.
@@ -219,6 +241,7 @@ BODY_END
           stats[key.to_sym] = @doc[key.to_sym]
         end
         stats[:ttl] = get_ttl
+        stats[:id] = @id
         return stats
       else
         raise 'invalid token'
@@ -278,7 +301,7 @@ module Baggage
     helpers Sinatra::Param
     register Sinatra::RespondWith
 
-    respond_to :json, :xml, :text, :yaml
+    respond_to :html, :json, :xml, :text, :yaml
     set :default_content, :json
 
     # GET /subscribe/user@domain
@@ -295,6 +318,7 @@ module Baggage
 
         response = { :message => 'subscription sent' }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -303,6 +327,7 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -324,6 +349,7 @@ module Baggage
 
         response = { :message => 'stats', :stats => stats }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -332,6 +358,7 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -356,6 +383,7 @@ module Baggage
 
         response = { :message => 'rotated' }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -364,6 +392,7 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -385,6 +414,7 @@ module Baggage
 
         response = { :message => 'unsubscribed' }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -393,6 +423,7 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -420,6 +451,7 @@ module Baggage
 
         response = { :message => 'sent' }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -428,6 +460,7 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -456,6 +489,7 @@ module Baggage
 
         response = { :message => 'sent' }
         respond_to do |f|
+          f.html { Baggage::Response.json(response) }
           f.txt  { Baggage::Response.text(response) }
           f.json { Baggage::Response.json(response) }
           f.xml  { Baggage::Response.xml(response)  }
@@ -464,6 +498,8 @@ module Baggage
       rescue Exception => e
         response = { :message => 'error', :error => e.message }
         respond_to do |f|
+          f.html { halt 400, Baggage::Response.json(response) }
+          f.html { halt 400, Baggage::Response.json(response) }
           f.txt  { halt 400, Baggage::Response.text(response) }
           f.json { halt 400, Baggage::Response.json(response) }
           f.xml  { halt 400, Baggage::Response.xml(response)  }
@@ -477,6 +513,7 @@ module Baggage
       response = { :message => 'pong' }
 
       respond_to do |f|
+        f.html { Baggage::Response.json(response) }
         f.txt  { Baggage::Response.text(response) }
         f.json { Baggage::Response.json(response) }
         f.xml  { Baggage::Response.xml(response)  }
@@ -487,6 +524,7 @@ module Baggage
     not_found do
       response = { :message => 'error', :error => 'not found' }
       respond_to do |f|
+        f.html { halt 404, Baggage::Response.json(response) }
         f.txt  { halt 404, Baggage::Response.text(response) }
         f.json { halt 404, Baggage::Response.json(response) }
         f.xml  { halt 404, Baggage::Response.xml(response)  }

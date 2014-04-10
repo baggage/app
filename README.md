@@ -77,7 +77,7 @@ __POST /send/{id}__
 
 Here the body comes from the body of the request so the body parameter isn't required.
 
-    curl -is -XPOST --data-binary @body.txt 'https://api.baggage.io/send/{id}?token={email_token}&subject={subject}&from={from}'
+    curl -is -XPOST --data-binary @body.txt -H 'Content-Type: application/octet-stream' 'https://api.baggage.io/send/{id}?token={email_token}&subject={subject}&from={from}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
@@ -170,11 +170,8 @@ Output on success:
 
 # contributing
 
-In general, we follow the "fork-and-pull" Git workflow.
-
- 1. Fork the repo on GitHub
- 2. Commit changes to a branch in your fork
- 3. Pull request "upstream" with your changes
- 4. Merge changes in to "upstream" repo
-
-NOTE: Be sure to merge the latest from "upstream" before making a pull request!
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
