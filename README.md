@@ -144,7 +144,7 @@ Output on success:
 
 __GET /rotate/{id}__
 
-Used to change the tokens. The ID remains the same and both tokens get rotated. An email is sent with the new tokens. It can also be used to change the expiry period.
+Used to change the tokens. The ID remains the same and both tokens get rotated. An email is sent with the new tokens.
 
     curl -is 'https://api.baggage.io/rotate/{id}?token={token}'
 
