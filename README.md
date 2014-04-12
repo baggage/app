@@ -45,12 +45,13 @@ To receive emails you must subscribe an email address. Each subscription has a u
 
 When you subscribe, you will receive an email containing the tokens necessary for sending emails or managing the subscription.
 
-    curl -is 'https://api.baggage.io/subscribe/{email_address}?expires={expiry}'
+    curl -is 'https://api.baggage.io/subscribe/{email_address}?expires={expires}&name={name}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
 | email\_address | Email address you would like to subscribe | String | Any valid email address | Yes | NA |
 | expires | Number of days of inactivity before the subscription expires | Integer | 1 to 365 | No | 7 |
+| name | A convenient descriptive name | String | Alphanumerics plus space, - and \_. Up to 64 chars. | No | baggage.io |
 
 Output on success:
 
@@ -106,9 +107,10 @@ Retrieve subscription statistics. This does not send an email, the stats are ret
 
 Output on success:
 
-    {"message":"stats","stats":{"email":"you@domain.com","created":"2014-04-07 23:48:18 +0100","updated":"2014-04-07 23:49:36 +0100","sent_count":1,"subscriber_ip":"127.0.0.1","last_admin_ip":"127.0.0.1","last_sender_ip":"127.0.0.1","ttl":604797}}
+    {"message":"stats","stats":{"email":"you@domain.com","name":"baggage.io","created":"2014-04-07 23:48:18 +0100","updated":"2014-04-07 23:49:36 +0100","sent_count":1,"subscriber_ip":"127.0.0.1","last_admin_ip":"127.0.0.1","last_sender_ip":"127.0.0.1","ttl":604797}}
 
 * __email__ - subscribed email address
+* __name__ - descriptive name
 * __created__ - when the subscription was created
 * __updated__ - when the subscription was last updated or used
 * __sent\_count__ - number of messages sent
@@ -118,19 +120,38 @@ Output on success:
 * __ttl__ - number of seconds before subscription expires of inactivity (time to live)
 
 
+## update
+
+__GET /update/{id}__
+
+Update subscription attributes. This does not send an email.
+
+    curl -is 'https://api.baggage.io/update/{id}?token={token}&name={name}&expires={expires}'
+
+| Parameter | Description | Type | Validation | Required | Default |
+|-----------|-------------|------|------------|:--------:|---------|
+| id | Unique subscription ID | String | Hex 32 chars | Yes | NA |
+| token | Admin token | String | Hex 64 chars | Yes | NA |
+| name | A convenient descriptive name | String | Alphanumerics plus space, - and \_. Up to 64 chars. | No | baggage.io |
+| expires | Number of days of inactivity before the subscription expires | Integer | 1 to 365 | No | 7 |
+
+Output on success:
+
+    {"message":"updated"}
+
+
 ## rotate
 
 __GET /rotate/{id}__
 
 Used to change the tokens. The ID remains the same and both tokens get rotated. An email is sent with the new tokens. It can also be used to change the expiry period.
 
-    curl -is 'https://api.baggage.io/rotate/{id}?token={token}&expires={expires}'
+    curl -is 'https://api.baggage.io/rotate/{id}?token={token}'
 
 | Parameter | Description | Type | Validation | Required | Default |
 |-----------|-------------|------|------------|:--------:|---------|
 | id | Unique subscription ID | String | Hex 32 chars | Yes | NA |
 | token | Admin token | String | Hex 64 chars | Yes | NA |
-| expires | Number of days of inactivity before the subscription expires | Integer | 1 to 365 | No | 7 |
 
 Output on success:
 

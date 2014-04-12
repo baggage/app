@@ -21,6 +21,7 @@ module Baggage
   TOKEN_LENGTH = TOKEN_BYTES * 2
   MAIL_FROM_NAME = 'baggage.io'
   MAIL_FROM_ADDR = '<no-reply@baggage.io>'
+  NAME_LENGTH = 64
 end
 
 module Baggage
@@ -55,13 +56,19 @@ module Baggage
     end
 
     def read()
-      @doc = JSON.parse(@data_store.get(@id), :symbolize_names => true)
-      if not @doc
+      data = @data_store.get(@id)
+      if not data
         raise 'could not read'
+      end
+
+      @doc = JSON.parse(data, :symbolize_names => true)
+      if not @doc
+        raise 'could not parse'
       end
     end
 
     def set_expiry()
+      @doc[:expires] = DEFAULT_EXPIRES unless @doc.has_key?(:expires)
       expires_sec = @doc[:expires] * 24 * 60 * 60
       if not @data_store.expire(@id, expires_sec)
         raise 'could not set expiry'
@@ -90,6 +97,8 @@ end
 
 module Baggage
   class Subscriber < RedisDataStore
+
+    attr_accessor :id, :doc
 
     def initialize()
       @doc = {}
@@ -229,7 +238,20 @@ BODY_END
       @doc[:subscriber_ip] = @doc[:last_admin_ip]
       generate_tokens
       write
-      send_tokens('New baggage.io subscription', 'Your new subscription:')
+
+      send_tokens("New baggage.io subscription", "Your new subscription:")
+    end
+
+    def update(args = {})
+      @id = args[:id]
+      read
+      if @doc[:admin_token] == args[:token]
+        @doc[:name] = args[:name] unless args[:name].nil?
+        @doc[:expires] = args[:expires] unless args[:expires].nil?
+        write
+      else
+        raise 'invalid token'
+      end
     end
 
     def stats(args = {})
@@ -237,11 +259,11 @@ BODY_END
       read
       if @doc[:admin_token] == args[:token]
         stats = {}
-        %w[ email created updated sent_count subscriber_ip last_admin_ip last_sender_ip ].each do |key|
+        stats[:id] = @id
+        %w[ name email created updated sent_count subscriber_ip last_admin_ip last_sender_ip ].each do |key|
           stats[key.to_sym] = @doc[key.to_sym]
         end
         stats[:ttl] = get_ttl
-        stats[:id] = @id
         return stats
       else
         raise 'invalid token'
@@ -253,11 +275,6 @@ BODY_END
       read
       if @doc[:admin_token] == args[:token]
         generate_tokens
-
-        if args[:expires]
-          @doc[:expires] = args[:expires]
-        end
-
         write
         send_tokens('Your new baggage.io tokens', 'Your tokens have been rotated. The new values are:')
       else
@@ -304,36 +321,75 @@ module Baggage
     respond_to :html, :json, :xml, :text, :yaml
     set :default_content, :json
 
+    def return_response(response)
+      respond_to do |f|
+        f.html { Baggage::Response.json(response) }
+        f.txt  { Baggage::Response.text(response) }
+        f.json { Baggage::Response.json(response) }
+        f.xml  { Baggage::Response.xml(response)  }
+        f.yaml { Baggage::Response.yaml(response) }
+      end
+    end
+
+    def return_error(response, code=400)
+      respond_to do |f|
+        f.html { halt code, Baggage::Response.json(response) }
+        f.txt  { halt code, Baggage::Response.text(response) }
+        f.json { halt code, Baggage::Response.json(response) }
+        f.xml  { halt code, Baggage::Response.xml(response)  }
+        f.yaml { halt code, Baggage::Response.yaml(response) }
+      end
+    end
+
+    get '/subscribe' do 
+      return_error({ :message => 'error', :error => 'email is missing' })
+    end
+    %w[ update rotate unsubscribe stats ].each do |call|
+      get "/#{call}" do 
+        return_error({ :message => 'error', :error => 'id is missing' })
+      end
+    end
+
     # GET /subscribe/user@domain
     # GET /subscribe/user@domain?expires=1
     get '/subscribe/:email' do
       param :email,     String, format: /^[a-zA-Z0-9\.\_\+\@\(\)]+$/, required: true
       param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: Baggage::DEFAULT_EXPIRES
+      param :name,      String, format: /^[a-zA-Z0-9\ \-\_\.]{,#{Baggage::NAME_LENGTH}}$/, default: "baggage.io"
 
       begin
         s = Subscriber.new
         s.subscribe(:email => params[:email], 
                     :expires => params[:expires],
+                    :name => params[:name],
                     :last_admin_ip => request.ip)
 
-        response = { :message => 'subscription sent' }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+        return_response({ :message => 'subscription sent' })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+        return_error({ :message => 'error', :error => e.message })
       end
+    end
+
+    # GET /update/xxx?token=yyy
+    get '/update/:id' do
+      param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
+      param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
+      param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: nil
+      param :name,      String, format: /^[a-zA-Z0-9\ \-\_\.]{,#{Baggage::NAME_LENGTH}}$/, default: nil
+
+      begin
+        s = Subscriber.new
+        s.update(:id => params[:id], 
+                 :token => params[:token], 
+                 :name => params[:name],
+                 :expires => params[:expires],
+                 :last_admin_ip => request.ip)
+
+        return_response({ :message => 'updated' })
+      rescue Exception => e
+        return_error({ :message => 'error', :error => e.message })
+      end
+
     end
 
     # GET /stats/xxx?token=yyy
@@ -347,23 +403,9 @@ module Baggage
                  :token => params[:token], 
                  :last_admin_ip => request.ip)
 
-        response = { :message => 'stats', :stats => stats }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+       return_response({ :message => 'stats', :stats => stats })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+        return_error({ :message => 'error', :error => e.message })
       end
     end
 
@@ -372,32 +414,16 @@ module Baggage
     get '/rotate/:id' do
       param :id,        String, format: /^[a-f0-9]{#{Baggage::ID_LENGTH}}$/, transform: :downcase, required: true
       param :token,     String, format: /^[a-f0-9]{#{Baggage::TOKEN_LENGTH}}$/, transform: :downcase, required: true
-      param :expires,   Integer, min: Baggage::MIN_EXPIRES, max: Baggage::MAX_EXPIRES, default: nil
 
       begin
         s = Subscriber.new
         s.rotate(:id => params[:id], 
                  :token => params[:token], 
-                 :expires => params[:expires],
                  :last_admin_ip => request.ip)
 
-        response = { :message => 'rotated' }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+        return_response({ :message => 'rotated' })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+        return_error({ :message => 'error', :error => e.message })
       end
     end
 
@@ -412,23 +438,9 @@ module Baggage
                       :token => params[:token],
                       :last_admin_ip => request.ip)
 
-        response = { :message => 'unsubscribed' }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+        return_response({ :message => 'unsubscribed' })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+        return_error({ :message => 'error', :error => e.message })
       end
     end
 
@@ -449,23 +461,9 @@ module Baggage
                :from => params[:from],
                :last_sender_ip => request.ip)
 
-        response = { :message => 'sent' }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+        return_response({ :message => 'sent' })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+        return_error({ :message => 'error', :error => e.message })
       end
     end
 
@@ -487,49 +485,19 @@ module Baggage
                :from => params[:from],
                :last_sender_ip => request.ip)
 
-        response = { :message => 'sent' }
-        respond_to do |f|
-          f.html { Baggage::Response.json(response) }
-          f.txt  { Baggage::Response.text(response) }
-          f.json { Baggage::Response.json(response) }
-          f.xml  { Baggage::Response.xml(response)  }
-          f.yaml { Baggage::Response.yaml(response) }
-        end
+        return_response({ :message => 'sent' })
       rescue Exception => e
-        response = { :message => 'error', :error => e.message }
-        respond_to do |f|
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.html { halt 400, Baggage::Response.json(response) }
-          f.txt  { halt 400, Baggage::Response.text(response) }
-          f.json { halt 400, Baggage::Response.json(response) }
-          f.xml  { halt 400, Baggage::Response.xml(response)  }
-          f.yaml { halt 400, Baggage::Response.yaml(response) }
-        end
+       return_error({ :message => 'error', :error => e.message })
       end
     end
 
     # GET /ping
     get '/ping' do
-      response = { :message => 'pong' }
-
-      respond_to do |f|
-        f.html { Baggage::Response.json(response) }
-        f.txt  { Baggage::Response.text(response) }
-        f.json { Baggage::Response.json(response) }
-        f.xml  { Baggage::Response.xml(response)  }
-        f.yaml { Baggage::Response.yaml(response) }
-      end
+      return_response({ :message => 'pong' })
     end
 
     not_found do
-      response = { :message => 'error', :error => 'not found' }
-      respond_to do |f|
-        f.html { halt 404, Baggage::Response.json(response) }
-        f.txt  { halt 404, Baggage::Response.text(response) }
-        f.json { halt 404, Baggage::Response.json(response) }
-        f.xml  { halt 404, Baggage::Response.xml(response)  }
-        f.yaml { halt 404, Baggage::Response.yaml(response) }
-      end
+     return_error({ :message => 'error', :error => 'not found' }, 404)
     end
 
   end

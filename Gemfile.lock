@@ -59,6 +59,7 @@ DEPENDENCIES
   mail
   newrelic_rpm
   puma
+  rack-test
   redis
   sidekiq
   sinatra
