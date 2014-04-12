@@ -28,7 +28,7 @@ The following are accepted:
 * text/plain (actually just text/yaml)
 * text/yaml
 * application/json (default)
-* application/yaml
+* application/xml
 
 ### status codes
 
